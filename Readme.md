@@ -193,7 +193,7 @@ docker-compose down
 To restart with fresh tests:
 
 ```bash
-docker-compose down
+docker-compose up -d --build
 
 
 ```
