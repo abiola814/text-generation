@@ -32,6 +32,7 @@ class GeneratedText(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     prompt = db.Column(db.Text, nullable=False)
     response = db.Column(db.Text, nullable=False)
+    provider = db.Column(db.String(50), nullable=True)  # Added to track which AI provider was used
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     
     def to_dict(self):
@@ -40,6 +41,7 @@ class GeneratedText(db.Model):
             'user_id': self.user_id,
             'prompt': self.prompt,
             'response': self.response,
+            'provider': self.provider,
             'timestamp': self.timestamp.isoformat()
         }
     

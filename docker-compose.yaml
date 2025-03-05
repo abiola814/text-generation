@@ -1,84 +1,40 @@
 version: '3.8'
 
 services:
-  test:
-    build: 
-      context: .
-      dockerfile: Dockerfile
-    environment:
-      - FLASK_ENV=testing
-      - FLASK_CONFIG=testing
-        
-    env_file:
-      - .env
-
-    depends_on:
-      - db
-    networks:
-      - app-network
-    command: sh -c "flask db upgrade && python -m pytest"
-
-  # Web application - depends on tests
   web:
     build: .
-    restart: always
     ports:
-      - "5003:5000"
-    env_file:
-      - .env
+      - "5000:5000"
     environment:
-      - FLASK_ENV=development
-      - FLASK_CONFIG=development
-    depends_on:
-      test:
-        condition: service_completed_successfully
-      db:
-        condition: service_healthy
+      - FLASK_ENV=production
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/ai_text_generator
+      - SECRET_KEY=jjdhhjdhhdhhdhhjdhhdhdhhdhdjhjdhjhjd
+      - JWT_SECRET_KEY=jhjhdjhfjdhjfdhhdhdhh
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_MODEL=gpt-4o-mini
+      - DEFAULT_AI_PROVIDER=openai
+      - LOG_LEVEL=INFO
     networks:
       - app-network
+    depends_on:
+      - db
     volumes:
-      - ./app:/app/app
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-
+      - ./logs:/app/logs
+    restart: unless-stopped
 
   db:
-    image: postgres:14
-    restart: always
+    image: postgres:14-alpine
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=text_generator
-    ports:
-      - "5432:5432"
-    networks:
-      - app-network
+      - POSTGRES_DB=ai_text_generator
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  pgadmin:
-    image: dpage/pgadmin4
-    restart: always
-    environment:
-      - PGADMIN_DEFAULT_EMAIL=admin@example.com
-      - PGADMIN_DEFAULT_PASSWORD=admin
     ports:
-      - "5050:80"
-    depends_on:
-      - db
+      - "5431:5432"
     networks:
       - app-network
-    volumes:
-      - pgadmin_data:/var/lib/pgadmin
+    restart: unless-stopped
 
 networks:
   app-network:
@@ -86,4 +42,3 @@ networks:
 
 volumes:
   postgres_data:
-  pgadmin_data:

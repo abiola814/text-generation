@@ -1,44 +1,40 @@
-# Use an official Python runtime as a parent image
+# Use Python 3.9 slim image
 FROM python:3.9-slim
-
-# Set environment variables
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
-ENV FLASK_APP=app
 
 # Set working directory
 WORKDIR /app
 
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=off \
+    PIP_DISABLE_PIP_VERSION_CHECK=on
+
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc \
-    libpq-dev \
-    netcat-traditional \
+    build-essential \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy entrypoint script first and make it executable
-COPY docker-entrypoint.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+# Copy requirements file
+COPY requirements.txt .
 
 # Install Python dependencies
-COPY requirements.txt /app/
-RUN pip install --upgrade pip && \
-    pip install -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy project files
-COPY . /app/
+# Copy application code
+COPY . .
 
-# Create a non-root user and switch to it
-RUN useradd -m appuser
+# Create logs directory
+RUN mkdir -p logs && chmod 777 logs
+
+# Create a non-root user to run the app
+RUN adduser --disabled-password --gecos "" appuser
 RUN chown -R appuser:appuser /app
 USER appuser
 
-# Expose the port the app runs on
+# Expose port
 EXPOSE 5000
 
-# Run the entrypoint script
-ENTRYPOINT ["docker-entrypoint.sh"]
-
 # Command to run the application
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "wsgi:app"]
+CMD ["gunicorn", "run:app", "--bind", "0.0.0.0:5000","--access-logfile", "-"]
